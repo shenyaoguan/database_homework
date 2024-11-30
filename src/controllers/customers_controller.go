@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 	"src/config"
 	"src/models"
@@ -79,4 +80,45 @@ func GetCustomerItinerary(custName string) ([]interface{}, error) {
 	}
 
 	return itinerary, nil
+}
+
+// CheckReservationIntegrity checks if the customer's reservations are still valid
+func CheckReservationIntegrity(customerName string) error {
+	// Retrieve reservations for the customer
+	var reservations []models.Reservation
+	if err := config.DB.Where("cust_name = ?", customerName).Find(&reservations).Error; err != nil {
+		return fmt.Errorf("failed to retrieve reservations: %w", err)
+	}
+
+	for _, res := range reservations {
+		switch res.ResvType {
+		case 1: // Flight
+			var flight models.Flight
+			if err := config.DB.Where("flight_num = ?", res.ResvKey).First(&flight).Error; err != nil {
+				return fmt.Errorf("invalid flight reservation: %w", err)
+			}
+			if flight.NumAvail <= 0 {
+				return errors.New("flight reservation has insufficient availability")
+			}
+		case 2: // Hotel
+			var hotel models.Hotel
+			if err := config.DB.Where("location = ?", res.ResvKey).First(&hotel).Error; err != nil {
+				return fmt.Errorf("invalid hotel reservation: %w", err)
+			}
+			if hotel.NumAvail <= 0 {
+				return errors.New("hotel reservation has insufficient availability")
+			}
+		case 3: // Bus
+			var bus models.Bus
+			if err := config.DB.Where("location = ?", res.ResvKey).First(&bus).Error; err != nil {
+				return fmt.Errorf("invalid bus reservation: %w", err)
+			}
+			if bus.NumAvail <= 0 {
+				return errors.New("bus reservation has insufficient availability")
+			}
+		default:
+			return fmt.Errorf("unknown reservation type: %d", res.ResvType)
+		}
+	}
+	return nil
 }
