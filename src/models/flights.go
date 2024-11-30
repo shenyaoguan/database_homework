@@ -1,9 +1,6 @@
 package models
 
-import "gorm.io/gorm"
-
 type Flight struct {
-	gorm.Model
 	FlightNum string `gorm:"primaryKey"`
 	Price     int    `gorm:"not null"`
 	NumSeats  int    `gorm:"not null"`
