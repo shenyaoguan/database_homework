@@ -22,6 +22,14 @@ func GetAllFlights() ([]models.Flight, error) {
 	return flights, nil
 }
 
+func GetFlightByNum(flightNum string) (models.Flight, error) {
+	var flight models.Flight
+	if result := config.DB.First(&flight, "flight_num = ?", flightNum); result.Error != nil {
+		return models.Flight{}, result.Error
+	}
+	return flight, nil
+}
+
 func DeleteFlight(flightNum string) error {
 	if result := config.DB.Delete(&models.Flight{}, "flight_num = ?", flightNum); result.Error != nil {
 		return result.Error
@@ -29,4 +37,16 @@ func DeleteFlight(flightNum string) error {
 	fmt.Println("Flight deleted successfully")
 	return nil
 
+}
+
+func UpdateFlight(flightNum string, updatedFlight models.Flight) error {
+	var flight models.Flight
+	if result := config.DB.First(&flight, "flight_num = ?", flightNum); result.Error != nil {
+		return result.Error
+	}
+	if result := config.DB.Model(&flight).Updates(updatedFlight); result.Error != nil {
+		return result.Error
+	}
+	fmt.Println("Flight updated successfully")
+	return nil
 }

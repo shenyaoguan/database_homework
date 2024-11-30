@@ -22,4 +22,39 @@ func GetAllCustomers() ([]models.Customer, error) {
 	return customers, nil
 }
 
+func GetCustomerByEmail(email string) (models.Customer, error) {
+	var customer models.Customer
+	if result := config.DB.First(&customer, "email = ?", email); result.Error != nil {
+		return models.Customer{}, result.Error
+	}
+	return customer, nil
+}
+
+func GetCustomerByPhone(phone string) (models.Customer, error) {
+	var customer models.Customer
+	if result := config.DB.First(&customer, "phone = ?", phone); result.Error != nil {
+		return models.Customer{}, result.Error
+	}
+	return customer, nil
+}
+
 // Add more functions for updating and deleting customers
+func UpdateCustomer(email string, updatedCustomer models.Customer) error {
+	var customer models.Customer
+	if result := config.DB.First(&customer, "email = ?", email); result.Error != nil {
+		return result.Error
+	}
+	if result := config.DB.Model(&customer).Updates(updatedCustomer); result.Error != nil {
+		return result.Error
+	}
+	fmt.Println("Customer updated successfully")
+	return nil
+}
+
+func DeleteCustomer(email string) error {
+	if result := config.DB.Delete(&models.Customer{}, "email = ?", email); result.Error != nil {
+		return result.Error
+	}
+	fmt.Println("Customer deleted successfully")
+	return nil
+}

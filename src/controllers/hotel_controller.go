@@ -23,3 +23,22 @@ func GetAllHotels() ([]models.Hotel, error) {
 }
 
 // Add more functions for updating and deleting hotels
+func UpdateHotel(name string, updatedHotel models.Hotel) error {
+	var hotel models.Hotel
+	if result := config.DB.First(&hotel, "name = ?", name); result.Error != nil {
+		return result.Error
+	}
+	if result := config.DB.Model(&hotel).Updates(updatedHotel); result.Error != nil {
+		return result.Error
+	}
+	fmt.Println("Hotel updated successfully")
+	return nil
+}
+
+func DeleteHotel(name string) error {
+	if result := config.DB.Delete(&models.Hotel{}, "name = ?", name); result.Error != nil {
+		return result.Error
+	}
+	fmt.Println("Hotel deleted successfully")
+	return nil
+}
