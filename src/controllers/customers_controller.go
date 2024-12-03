@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"errors"
 	"fmt"
 	"src/config"
 	"src/models"
@@ -23,10 +22,10 @@ func GetAllCustomers() ([]models.Customer, error) {
 	return customers, nil
 }
 
-func GetCustomerByName(name string) (models.Customer, error) {
-	var customer models.Customer
-	if result := config.DB.First(&customer, "cust_name = ?", name); result.Error != nil {
-		return models.Customer{}, result.Error
+func GetCustomerByName(name string) ([]models.Customer, error) {
+	var customer []models.Customer
+	if result := config.DB.Where("cust_name = ?", name).Find(&customer); result.Error != nil {
+		return []models.Customer{}, result.Error
 	}
 	return customer, nil
 }
@@ -86,38 +85,21 @@ func GetCustomerItinerary(custName string) ([]interface{}, error) {
 func CheckReservationIntegrity(customerName string) error {
 	// Retrieve reservations for the customer
 	var reservations []models.Reservation
-	if err := config.DB.Where("cust_name = ?", customerName).Find(&reservations).Error; err != nil {
+	flags := make(map[string]int)
+	if err := config.DB.Where("cust_name = ?", customerName).Where("resv_type = ?", 1).Find(&reservations).Error; err != nil {
 		return fmt.Errorf("failed to retrieve reservations: %w", err)
 	}
-
 	for _, res := range reservations {
-		switch res.ResvType {
-		case 1: // Flight
-			var flight models.Flight
-			if err := config.DB.Where("flight_num = ?", res.ResvKey).First(&flight).Error; err != nil {
-				return fmt.Errorf("invalid flight reservation: %w", err)
-			}
-			if flight.NumAvail <= 0 {
-				return errors.New("flight reservation has insufficient availability")
-			}
-		case 2: // Hotel
-			var hotel models.Hotel
-			if err := config.DB.Where("location = ?", res.ResvKey).First(&hotel).Error; err != nil {
-				return fmt.Errorf("invalid hotel reservation: %w", err)
-			}
-			if hotel.NumAvail <= 0 {
-				return errors.New("hotel reservation has insufficient availability")
-			}
-		case 3: // Bus
-			var bus models.Bus
-			if err := config.DB.Where("location = ?", res.ResvKey).First(&bus).Error; err != nil {
-				return fmt.Errorf("invalid bus reservation: %w", err)
-			}
-			if bus.NumAvail <= 0 {
-				return errors.New("bus reservation has insufficient availability")
-			}
-		default:
-			return fmt.Errorf("unknown reservation type: %d", res.ResvType)
+		var flight models.Flight
+		if err := config.DB.First(&flight, "flight_num = ?", res.ResvKey).Error; err != nil {
+			return fmt.Errorf("flight reservation %s is invalid: %w", res.ResvKey, err)
+		}
+		flags[flight.ArivCity] += 1
+		flags[flight.FromCity] -= 1
+	}
+	for _, flag := range flags {
+		if flag != 0 {
+			return fmt.Errorf("the scheduled route is incomplete")
 		}
 	}
 	return nil
