@@ -36,9 +36,10 @@ create table hotels
 
 create table reservations
 (
-    cust_name longtext     not null,
+    cust_name varchar(191) not null,
     resv_type bigint       not null,
-    resv_key  varchar(191) not null
-        primary key
+    resv_key  varchar(191) not null,
+    primary key (cust_name, resv_key)
 );
+
 
